@@ -1,23 +1,39 @@
 ﻿using System;
 using System.Collections.Generic;
 using Newtonsoft.Json;
+using Google.Maps.Common;
 
 namespace Google.Maps.DistanceMatrix
 {
 	/// <summary>
-	/// 
+	///
 	/// </summary>
 	[JsonObject(MemberSerialization.OptIn)]
-	public class DistanceMatrixResponse
+	public class DistanceMatrixResponse : IServiceResponse
 	{
+		/// <summary>
+		/// Contains the ServiceResponseStatus.
+		/// </summary>
 		[JsonProperty("status")]
 		public ServiceResponseStatus Status { get; set; }
+
+		/// <summary>
+		/// More detailed information about the reasons behind the given status code, if other than OK.
+		/// </summary>
+		[JsonProperty("error_message")]
+		public string ErrorMessage { get; set; }
+
+		[JsonProperty("destination_addresses")]
+		public string[] DestinationAddresses { get; set; }
+
+		[JsonProperty("origin_addresses")]
+		public string[] OriginAddresses { get; set; }
 
 		[JsonProperty("rows")]
 		public DistanceMatrixRows[] Rows { get; set; }
 
 		/// <summary>
-		/// 
+		///
 		/// </summary>
 		[JsonObject(MemberSerialization.OptIn)]
 		public class DistanceMatrixRows
@@ -27,7 +43,7 @@ namespace Google.Maps.DistanceMatrix
 		}//end class
 
 		/// <summary>
-		/// 
+		///
 		/// </summary>
 		[JsonObject(MemberSerialization.OptIn)]
 		public class DistanceMatrixElement

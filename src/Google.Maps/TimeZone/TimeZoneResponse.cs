@@ -17,12 +17,12 @@
 
 using Newtonsoft.Json;
 using System;
+using Google.Maps.Common;
 
 namespace Google.Maps.TimeZone
 {
-	[Serializable]
 	[JsonObject(MemberSerialization.OptIn)]
-	public class TimeZoneResponse
+	public class TimeZoneResponse : IServiceResponse
 	{
 		/// <summary>
 		/// Contains the ServiceResponseStatus.
@@ -47,8 +47,8 @@ namespace Google.Maps.TimeZone
 		/// A string containing the "tz" ID of the time zone, such as "America/Los_Angeles" or "Australia/Sydney".
 		/// These IDs are defined in the IANA Time Zone Database.
 		/// </summary>
-		/// <see cref="http://www.iana.org/time-zones"/>
-		/// <see cref="https://en.wikipedia.org/wiki/List_of_tz_database_time_zones"/>
+		/// <see href="http://www.iana.org/time-zones"/>
+		/// <see href="https://en.wikipedia.org/wiki/List_of_tz_database_time_zones"/>
 		[JsonProperty("timeZoneId")]
 		public string TimeZoneID { get; set; }
 

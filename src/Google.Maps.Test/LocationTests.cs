@@ -1,10 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
+
 using NUnit.Framework;
 
-namespace Google.Maps.Test
+namespace Google.Maps
 {
 	[TestFixture]
 	public class LocationTests
@@ -14,7 +13,7 @@ namespace Google.Maps.Test
 		{
 			Location l = new Location("City Hall, New York, NY");
 
-			string expected = "City+Hall,+New+York,+NY";
+			string expected = "City%20Hall%2C%20New%20York%2C%20NY";
 			string actual = l.GetAsUrlParameter();
 
 			//note, if this test starts failing, it may be because the 'comma' is being (in some circles' opinion) "properly" url encoded to %2c

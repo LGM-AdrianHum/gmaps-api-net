@@ -38,7 +38,7 @@ namespace Google.Maps.Places
 		/// The language in which to return results. See the list of supported domain languages.
 		/// Note that we often update supported languages so this list may not be exhaustive.
 		/// </summary>
-		/// <see cref="https://developers.google.com/places/documentation/search#PlaceSearchRequests"/>
+		/// <see href="https://developers.google.com/places/documentation/search#PlaceSearchRequests"/>
 		public string Language { get; set; }
 
 		/// <summary>
@@ -69,14 +69,13 @@ namespace Google.Maps.Places
 		/// </summary>
 		public string PageToken { get; set; }
 
-		internal override Uri ToUri()
+		public override Uri ToUri()
 		{
 			ValidateRequest();
 
 			var qsb = new Internal.QueryStringBuilder();
 
-			qsb.Append("location", Location.GetAsUrlParameter())
-			   .Append("sensor", (Sensor.Value.ToString().ToLowerInvariant()));
+			qsb.Append("location", Location.GetAsUrlParameter());
 
 			if(RankBy.GetValueOrDefault(Maps.RankBy.Prominence) != Maps.RankBy.Distance)
 			{

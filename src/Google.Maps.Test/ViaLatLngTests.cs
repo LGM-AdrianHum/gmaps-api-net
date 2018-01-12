@@ -1,11 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using NUnit.Framework;
-using Google.Maps;
 
-namespace Google.Maps.Test
+using NUnit.Framework;
+
+namespace Google.Maps
 {
 	[TestFixture]
 	public class ViaLatLngTests
@@ -47,6 +45,7 @@ namespace Google.Maps.Test
 			Assert.AreEqual(expected.Longitude, actual.Longitude);
 		}
 
+#if HAS_CURRENTCULTURE
 		[Test]
 		public void ToString_using_invariant_culture_settings()
 		{
@@ -69,6 +68,7 @@ namespace Google.Maps.Test
 				System.Threading.Thread.CurrentThread.CurrentCulture = savedCulture;
 			}
 		}
+#endif
 
 		[Test]
 		[TestCase(30.1d, 60.2d)]
@@ -95,6 +95,5 @@ namespace Google.Maps.Test
 			ViaLatLng ViaLatLng4 = new ViaLatLng(0d, 0d);
 			Assert.IsFalse(ViaLatLng1.Equals(ViaLatLng4));
 		}
-
 	}
 }

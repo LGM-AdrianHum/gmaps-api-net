@@ -7,7 +7,6 @@ namespace Google.Maps
 	/// <summary>
 	/// A general free-text location, usually for specifying an address or particular place for Google Maps.
 	/// </summary>
-	[Serializable]
 	public class Location
 	{
 		protected Location()
@@ -40,9 +39,7 @@ namespace Google.Maps
 		/// <returns></returns>
 		public virtual string GetAsUrlParameter()
 		{
-			return System.Web.HttpUtility.UrlEncode(this.ToString())
-				.Replace("%2c", ",")
-				;
+			return System.Uri.EscapeDataString(this.ToString());
 		}
 
 		/// <summary>

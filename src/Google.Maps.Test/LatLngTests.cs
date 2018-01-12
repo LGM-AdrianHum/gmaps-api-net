@@ -1,11 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using NUnit.Framework;
-using Google.Maps;
 
-namespace Google.Maps.Test
+using NUnit.Framework;
+
+namespace Google.Maps
 {
 	[TestFixture]
 	public class LatLngTests
@@ -24,6 +22,7 @@ namespace Google.Maps.Test
 		[Test]
 		[TestCase(-35.3353d, 95.4454d, "-35.3353,95.4454")]
 		[TestCase(40.7142330d, -73.9612910d, "40.714233,-73.961291")]
+		[TestCase(0.000001d, -0.000001d, "0.000001,-0.000001")]
 		public void GetAsUrlEncoded(double lat, double lng, string expected)
 		{
 			LatLng latlng = new LatLng(lat, lng);
@@ -47,6 +46,7 @@ namespace Google.Maps.Test
 			Assert.AreEqual(expected.Longitude, actual.Longitude);
 		}
 
+#if HAS_CURRENTCULTURE
 		[Test]
 		public void ToString_using_invariant_culture_settings()
 		{
@@ -69,6 +69,7 @@ namespace Google.Maps.Test
 				System.Threading.Thread.CurrentThread.CurrentCulture = savedCulture;
 			}
 		}
+#endif
 
 		[Test]
 		[TestCase(30.1d, 60.2d)]
@@ -95,6 +96,5 @@ namespace Google.Maps.Test
 			LatLng latLng4 = new LatLng(0d, 0d);
 			Assert.IsFalse(latLng1.Equals(latLng4));
 		}
-
 	}
 }

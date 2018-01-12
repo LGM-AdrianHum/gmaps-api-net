@@ -46,6 +46,12 @@ namespace Google.Maps
 				case "INVALID_REQUEST":
 					result = ServiceResponseStatus.InvalidRequest;
 					break;
+				case "MAX_WAYPOINTS_EXCEEDED":
+					result = ServiceResponseStatus.MaxWaypointsExceeded;
+					break;
+				case "NOT_FOUND":
+					result = ServiceResponseStatus.NotFound;
+					break;
 			}
 
 			return result;
@@ -215,7 +221,7 @@ namespace Google.Maps
 					result = Places.PlaceType.CityHall;
 					break;
 				case "clothing_store":
-					result = Places.PlaceType.ClotingStore;
+					result = Places.PlaceType.ClothingStore;
 					break;
 				case "convenience_store":
 					result = Places.PlaceType.ConvenienceStore;
@@ -241,20 +247,11 @@ namespace Google.Maps
 				case "embassy":
 					result = Places.PlaceType.Embassy;
 					break;
-				case "establishment":
-					result = Places.PlaceType.Establishment;
-					break;
-				case "finance":
-					result = Places.PlaceType.Finance;
-					break;
 				case "fire_station":
 					result = Places.PlaceType.FireStation;
 					break;
 				case "florist":
 					result = Places.PlaceType.Florist;
-					break;
-				case "food":
-					result = Places.PlaceType.Food;
 					break;
 				case "funeral_home":
 					result = Places.PlaceType.FuneralHome;
@@ -265,12 +262,6 @@ namespace Google.Maps
 				case "gas_station":
 					result = Places.PlaceType.GasStation;
 					break;
-				case "general_contractor":
-					result = Places.PlaceType.GeneralContractor;
-					break;
-				case "grocery_or_supermarket":
-					result = Places.PlaceType.GroceryOrSupermarket;
-					break;
 				case "gym":
 					result = Places.PlaceType.Gym;
 					break;
@@ -279,9 +270,6 @@ namespace Google.Maps
 					break;
 				case "hardware_store":
 					result = Places.PlaceType.HardwareStore;
-					break;
-				case "health":
-					result = Places.PlaceType.Health;
 					break;
 				case "hindu_temple":
 					result = Places.PlaceType.HinduTemple;
@@ -361,9 +349,6 @@ namespace Google.Maps
 				case "physiotherapist":
 					result = Places.PlaceType.Physiotherapist;
 					break;
-				case "place_of_worship":
-					result = Places.PlaceType.PlaceOfWorkship;
-					break;
 				case "plumber":
 					result = Places.PlaceType.Plumber;
 					break;
@@ -413,7 +398,7 @@ namespace Google.Maps
 					result = Places.PlaceType.Synagogue;
 					break;
 				case "taxi_stand":
-					result = Places.PlaceType.TaxiStation;
+					result = Places.PlaceType.TaxiStand;
 					break;
 				case "train_station":
 					result = Places.PlaceType.TrainStation;

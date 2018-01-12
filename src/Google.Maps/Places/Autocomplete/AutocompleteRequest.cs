@@ -2,17 +2,16 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using Google.Maps.Internal;
 
 namespace Google.Maps.Places
 {
-	public class AutocompleteRequest : BaseRequest
-	{
-		/// <summary>
-		/// Indicates whether or not the place request comes from a device
-		/// with a location sensor. This value must be either true or false.
-		/// </summary>
-		/// <remarks>Required.</remarks>
-		public bool? Sensor { get; set; }
+	public class AutocompleteRequest : BaseRequest {
+		private readonly Dictionary<PlaceType, string> _specialTypeTranslations
+			= new Dictionary<PlaceType, string> {
+				{PlaceType.CitiesCollection, "(cities)"},
+				{PlaceType.RegionsCollection, "(regions)"},
+			};
 
 		/// <summary>
 		/// The text string on which to search. The Place Autocomplete service
@@ -46,14 +45,14 @@ namespace Google.Maps.Places
 		/// The language in which to return results. See the list of supported domain languages.
 		/// Note that we often update supported languages so this list may not be exhaustive.
 		/// </summary>
-		/// <see cref="https://developers.google.com/places/documentation/search#PlaceSearchRequests"/>
+		/// <see href="https://developers.google.com/places/documentation/search#PlaceSearchRequests"/>
 		public string Language { get; set; }
 
 		/// <summary>
 		/// Restricts the results to Places matching at least one of the
 		/// specified types
 		/// </summary>
-		/// <see cref="https://developers.google.com/places/documentation/supported_types"/>
+		/// <see href="https://developers.google.com/places/documentation/supported_types"/>
 		public PlaceType[] Types { get; set; }
 
 		/// <summary>
@@ -61,14 +60,13 @@ namespace Google.Maps.Places
 		/// </summary>
 		public string Components { get; set; }
 
-		internal override Uri ToUri()
+		public override Uri ToUri()
 		{
 			ValidateRequest();
 
 			var qsb = new Internal.QueryStringBuilder();
 
-			qsb.Append("input", Input.ToLowerInvariant())
-			   .Append("sensor", (Sensor.Value.ToString().ToLowerInvariant()));
+			qsb.Append("input", Input.ToLowerInvariant());
 
 			if(Offset > 0)
 			{
@@ -106,14 +104,19 @@ namespace Google.Maps.Places
 
 		protected void ValidateRequest()
 		{
-			if(this.Sensor == null) throw new InvalidOperationException("Sensor property hasn't been set.");
-
 			if(string.IsNullOrEmpty(this.Input)) throw new InvalidOperationException("Input property hasn't been set.");
 		}
 
 		protected string TypesToUri()
 		{
-			return string.Join("|", Types.Select(t => t.ToString().ToLowerInvariant()).ToArray<string>());
+			return string.Join("|", Types.Select(TranslatePlaceType).ToArray<string>());
+		}
+
+		private string TranslatePlaceType(PlaceType t)
+		{
+			return _specialTypeTranslations.ContainsKey(t)
+				? _specialTypeTranslations[t]
+				: t.ToString().ToSnakeCase();
 		}
 	}
 }

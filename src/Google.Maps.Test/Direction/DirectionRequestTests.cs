@@ -1,54 +1,34 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using NUnit.Framework;
-using Google.Maps.Geocoding;
-using System.Reflection;
-using Google.Maps.Direction;
+using System.Collections.Specialized;
 
-namespace Google.Maps.Test
+using NUnit.Framework;
+
+namespace Google.Maps.Direction
 {
 	[TestFixture]
 	public class DirectionRequestTests
 	{
+		#region helpers
 
-
-		public class DirectionRequestAccessor : DirectionRequest
+		NameValueCollection ParseQueryString(Uri uri)
 		{
-			private static Type S_instanceType;
-			private static MethodInfo _ToUri;
-
-			static DirectionRequestAccessor()
-			{
-				S_instanceType = typeof(DirectionRequest);
-
-				try { _ToUri = S_instanceType.GetMethod("ToUri", BindingFlags.NonPublic | BindingFlags.Instance, null, new Type[] { }, new ParameterModifier[] { }); }
-				catch { }
-				finally { Ensure(_ToUri, "ToUri"); }
-			}
-
-			private static void Ensure(MethodInfo methodInfo, string methodName)
-			{
-				if(methodInfo == null) Assert.Fail("Method '{0}' on type '{1}' was not found, and the accessor will fail.", methodName, S_instanceType);
-			}
-
-			#region Protected/Private interface
-			public Uri ToUri()
-			{
-				try
-				{
-					return (Uri)_ToUri.Invoke(this, new object[] { });
-				}
-				catch(TargetInvocationException ex)
-				{
-					throw ex.InnerException;
-				}
-			}
-			#endregion
-
-
+			//cant use uri.query for relativeuris for some stupid stupid STUPID reason
+			string query = uri.ToString();
+			return ParseQueryString(uri.ToString());
 		}
+		NameValueCollection ParseQueryString(string uri)
+		{
+			int queryIndex = uri.LastIndexOf("?");
+			if(queryIndex == -1) return new NameValueCollection();
+
+			string query = uri.Substring(queryIndex);
+
+			var nvcol = System.Web.HttpUtility.ParseQueryString(query);
+			return nvcol;
+		}
+
+		#endregion
 
 		//[Test]
 		//[ExpectedException(typeof(InvalidOperationException))]
@@ -94,110 +74,120 @@ namespace Google.Maps.Test
 
 
 		[Test]
-		[ExpectedException(typeof(InvalidOperationException))]
-		public void GetUrl_sensor_not_set_should_throw_error()
-		{
-			var req = new DirectionRequestAccessor();
-
-			var actual = req.ToUri();
-
-			Assert.Fail("Should've encountered an InvalidOperationException due to Sensor property not being set.");
-		}
-
-		//TODO: enable this [Test]
-		[ExpectedException(typeof(InvalidOperationException))]
 		public void GetUrl_no_Origin_set()
 		{
-			var req = new DirectionRequestAccessor();
+			var req = new DirectionRequest();
 			//req.Origin = nothing basically;
 
-			var actual = req.ToUri();
-
-			Assert.Fail("Should've encountered an InvalidOperationException due to Origin property not being set.");
+			//act
+			//assert
+			Assert.Throws<InvalidOperationException>(() =>
+			{
+				var actual = req.ToUri();
+			});
 		}
 
-		//TODO: enable this [Test]
-		[ExpectedException(typeof(InvalidOperationException))]
+		[Test]
 		public void GetUrl_no_Destination_set()
 		{
-			var req = new DirectionRequestAccessor();
+			var req = new DirectionRequest();
 			//req.Origin = nothing basically;
 
-			var actual = req.ToUri();
-
-			Assert.Fail("Should've encountered an InvalidOperationException due to Destination property not being set.");
+			//act
+			//assert
+			Assert.Throws<InvalidOperationException>(() =>
+			{
+				var actual = req.ToUri();
+			});
 		}
 
 		[Test]
 		public void GetUrl_simplest_using_address_ex1()
 		{
-			var req = new DirectionRequestAccessor();
-			req.Sensor = false;
+			//arrange
+			var expected = ParseQueryString("json?origin=New York, NY&destination=Albany, NY");
+
+			var req = new DirectionRequest();
 			req.Origin = "New York, NY";
 			req.Destination = "Albany, NY";
 			req.Mode = TravelMode.driving; //this is default, so querystring doesn't need to contain it.
 
-			Uri expected = new Uri("json?origin=New+York,+NY&destination=Albany,+NY&sensor=false", UriKind.Relative);
-			Uri actual = req.ToUri();
+			//act
+			var actual = ParseQueryString(req.ToUri());
 
-			Assert.AreEqual(expected, actual);
+			//assert
+			Assert.That(actual, Is.EquivalentTo(expected));
 		}
 
 		[Test]
 		public void GetUrl_simplest_using_latlng()
 		{
-			var req = new DirectionRequestAccessor();
-			req.Sensor = false;
+			//arrange
+			var expected = new NameValueCollection {
+				{ "origin", "30.2,40.3" },
+				{ "destination", "50.5,60.6" }
+			};
+
+			var req = new DirectionRequest();
 			req.Origin = new LatLng(30.2, 40.3);
 			req.Destination = new LatLng(50.5, 60.6);
 			req.Mode = TravelMode.driving; //this is default, so querystring doesn't need to contain it.
 
-			Uri expected = new Uri("json?origin=30.2,40.3&destination=50.5,60.6&sensor=false", UriKind.Relative);
-			Uri actual = req.ToUri();
+			//act
+			var actual = ParseQueryString(req.ToUri());
 
-			Assert.AreEqual(expected, actual);
+			//assert
+			Assert.That(actual, Is.EquivalentTo(expected));
 		}
 
 		[Test]
 		public void GetUrl_waypoints_simple_ex1()
 		{
-			var req = new DirectionRequestAccessor();
-			req.Sensor = false;
+			//arrange
+			var expected = ParseQueryString("json?origin=NY&destination=FL&waypoints=NC");
+
+			var req = new DirectionRequest();
 			req.Origin = "NY";
 			req.Destination = "FL";
 			req.Mode = TravelMode.driving; //this is default, so querystring doesn't need to contain it.
 
 			req.AddWaypoint("NC");
 
-			Uri expected = new Uri("json?origin=NY&destination=FL&waypoints=NC&sensor=false", UriKind.Relative);
-			Uri actual = req.ToUri();
+			//act
+			var actual = ParseQueryString(req.ToUri());
 
-			Assert.AreEqual(expected, actual);
+			//assert
+			Assert.That(actual, Is.EquivalentTo(expected));
 
 		}
 
 		[Test]
 		public void GetUrl_waypoints_latlng_ex1()
 		{
-			var req = new DirectionRequestAccessor();
-			req.Sensor = false;
+			//arrange
+			var expected = ParseQueryString("json?origin=NY&destination=Orlando,FL&waypoints=28.452694,-80.979195");
+
+			var req = new DirectionRequest();
 			req.Origin = "NY";
 			req.Destination = "Orlando,FL";
 			req.Mode = TravelMode.driving; //this is default, so querystring doesn't need to contain it.
 
 			req.AddWaypoint(new LatLng(28.452694, -80.979195));
 
-			Uri expected = new Uri("json?origin=NY&destination=Orlando,FL&waypoints=28.452694,-80.979195&sensor=false", UriKind.Relative);
-			Uri actual = req.ToUri();
+			//act
+			var actual = ParseQueryString(req.ToUri());
 
-			Assert.AreEqual(expected, actual);
+			//assert
+			Assert.That(actual, Is.EquivalentTo(expected));
 		}
 
 		[Test]
 		public void GetUrl_waypoints_latlng_ex2()
 		{
-			var req = new DirectionRequestAccessor();
-			req.Sensor = false;
+			//arrange
+			var expected = ParseQueryString("json?origin=NY&destination=Orlando,FL&waypoints=NJ|28.452694,-80.979195|Sarasota,FL");
+
+			var req = new DirectionRequest();
 			req.Origin = "NY";
 			req.Destination = "Orlando,FL";
 			req.Mode = TravelMode.driving; //this is default, so querystring doesn't need to contain it.
@@ -206,13 +196,12 @@ namespace Google.Maps.Test
 			req.AddWaypoint(new LatLng(28.452694, -80.979195));
 			req.AddWaypoint("Sarasota,FL");
 
-			Uri expected = new Uri("json?origin=NY&destination=Orlando,FL&waypoints=NJ|28.452694,-80.979195|Sarasota,FL&sensor=false", UriKind.Relative);
-			Uri actual = req.ToUri();
+			//act
+			var actual = ParseQueryString(req.ToUri());
 
-			Assert.AreEqual(expected, actual);
+			//assert
+			Assert.That(actual, Is.EquivalentTo(expected));
 		}
-
-
 
 	}
 }

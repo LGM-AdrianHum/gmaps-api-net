@@ -15,14 +15,14 @@
  * limitations under the License.
  */
 
-using Newtonsoft.Json;
 using System;
 using System.Globalization;
+
+using Newtonsoft.Json;
 
 namespace Google.Maps
 {
 	[JsonObject(MemberSerialization.OptIn)]
-	[Serializable]
 	public class LatLng : Location, IEquatable<LatLng>
 	{
 		private double _latitude;
@@ -113,12 +113,12 @@ namespace Google.Maps
 		/// <returns></returns>
 		public override string GetAsUrlParameter()
 		{
-			//we're not returning crazy characters so just return the string.
-			//prevents the comma from being converted to %2c, expanding the single character to three characters.
-			return this.ToString("R");
+			// This style of formatting will give us 7 decimal places of precision,
+			// but if anything can be expressed with less, then it will be.
+			// IE: 0.5 rather than 0.5000000
+			return this.ToString("0.#######");
 		}
 
-		#region Parse
 		/// <summary>
 		/// Parses a LatLng from a set of latitude/longitude coordinates
 		/// </summary>
@@ -148,10 +148,10 @@ namespace Google.Maps
 		}
 
 		/// <summary>
-		/// Converts the specified string representation of a latlong to its <see cref="LatLong"/> equivalent and returns a value that indicates whether the convertion succeeded.
+		/// Converts the specified string representation of a latlong to its <see cref="LatLng"/> equivalent and returns a value that indicates whether the convertion succeeded.
 		/// </summary>
 		/// <param name="value">A string containing the latlong to convert.</param>
-		/// <param name="result">When this method returns, it contains the <see cref="LatLong"/> value equivalent to the value contained in value, if the convertion succeeded; otherwize null if the convertion failed. The convertion fails if the value is null or does not conform to a comma-seperated string containing two decimal points. This parameter is passed uninitialized.</param>
+		/// <param name="result">When this method returns, it contains the <see cref="LatLng"/> value equivalent to the value contained in value, if the convertion succeeded; otherwize null if the convertion failed. The convertion fails if the value is null or does not conform to a comma-seperated string containing two decimal points. This parameter is passed uninitialized.</param>
 		/// <returns>true if the convertion succeeded; otherwise false.</returns>
 		/// <exception cref="ArgumentNullException"/>
 		/// <exception cref="FormatException"/>
@@ -171,7 +171,6 @@ namespace Google.Maps
 
 			return true;
 		}
-		#endregion
 
 		public override bool Equals(object obj)
 		{
@@ -189,6 +188,14 @@ namespace Google.Maps
 
 			//else
 			return false;
+		}
+
+		public override int GetHashCode()
+		{
+			int hash = 13;
+			hash += (hash * 7) + this.Latitude.GetHashCode();
+			hash += (hash * 7) + this.Longitude.GetHashCode();
+			return hash;
 		}
 	}
 }

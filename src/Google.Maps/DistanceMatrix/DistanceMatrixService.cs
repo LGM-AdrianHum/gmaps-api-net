@@ -15,9 +15,9 @@
  * limitations under the License.
  */
 using System;
-using System.Collections.Generic;
-using System.Text;
-using System.Globalization;
+using System.Threading.Tasks;
+
+using Google.Maps.Internal;
 
 namespace Google.Maps.DistanceMatrix
 {
@@ -26,30 +26,43 @@ namespace Google.Maps.DistanceMatrix
 	/// between start and end points, as calculated by the Google Maps API, and consists of rows containing duration and distance values for each pair.
 	/// <para>This service does not return detailed route information. Route information can be obtained by passing the desired single origin and destination to the Directions API.</para>
 	/// </summary>
-	/// <see cref="http://developers.google.com/maps/documentation/distancematrix/"/>
-	public class DistanceMatrixService
+	/// <see href="http://developers.google.com/maps/documentation/distancematrix/"/>
+	public class DistanceMatrixService : IDisposable
 	{
-		#region Http/Https Uris and Constructors
-
 		public static readonly Uri HttpsUri = new Uri("https://maps.google.com/maps/api/distancematrix/");
 		public static readonly Uri HttpUri = new Uri("http://maps.google.com/maps/api/distancematrix/");
 
-		public Uri BaseUri { get; set; }
+		Uri baseUri;
+		MapsHttp http;
 
-		public DistanceMatrixService()
-			: this(HttpUri)
+		public DistanceMatrixService(GoogleSigned signingSvc = null, Uri baseUri = null)
 		{
+			this.baseUri = baseUri ?? HttpsUri;
+
+			this.http = new MapsHttp(signingSvc ?? GoogleSigned.SigningInstance);
 		}
-		public DistanceMatrixService(Uri baseUri)
-		{
-			this.BaseUri = baseUri;
-		}
-		#endregion
 
 		public DistanceMatrixResponse GetResponse(DistanceMatrixRequest request)
 		{
-			var url = new Uri(this.BaseUri, request.ToUri());
-			return Internal.Http.Get(url).As<DistanceMatrixResponse>();
+			var url = new Uri(baseUri, request.ToUri());
+
+			return http.Get<DistanceMatrixResponse>(url);
+		}
+
+		public async Task<DistanceMatrixResponse> GetResponseAsync(DistanceMatrixRequest request)
+		{
+			var url = new Uri(baseUri, request.ToUri());
+
+			return await http.GetAsync<DistanceMatrixResponse>(url);
+		}
+
+		public void Dispose()
+		{
+			if (http != null)
+			{
+				http.Dispose();
+				http = null;
+			}
 		}
 	}
 }

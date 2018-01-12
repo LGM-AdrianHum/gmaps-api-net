@@ -19,11 +19,7 @@ using System;
 using System.Linq;
 using System.Collections.Generic;
 
-using HttpUtility = System.Web.HttpUtility;
 using Google.Maps.Internal;
-
-using Size = System.Drawing.Size;
-using Color = System.Drawing.Color;
 
 namespace Google.Maps.StaticMaps
 {
@@ -34,11 +30,11 @@ namespace Google.Maps.StaticMaps
 	/// the type of map, and the placement of optional markers at locations on
 	/// the map.
 	/// </summary>
-	public class StaticMapRequest
+	public class StaticMapRequest : BaseRequest
 	{
 		public StaticMapRequest()
 		{
-			this.Size = new Size(512, 512); //default size is 512x512
+			this.Size = new MapSize(512, 512); //default size is 512x512
 			this.Visible = new List<Location>(1);
 			this.Markers = new MapMarkersCollection();
 			this.Paths = new List<Path>();
@@ -70,7 +66,7 @@ namespace Google.Maps.StaticMaps
 			{
 				if(value != null)
 				{
-					if(value < Constants.ZOOM_LEVEL_MIN) throw new ArgumentOutOfRangeException(string.Format("value cannot be less than 0.", Constants.ZOOM_LEVEL_MIN));
+					if(value < Constants.ZOOM_LEVEL_MIN) throw new ArgumentOutOfRangeException(string.Format("value cannot be less than {0}.", Constants.ZOOM_LEVEL_MIN));
 				}
 				_zoom = value;
 			}
@@ -86,7 +82,7 @@ namespace Google.Maps.StaticMaps
 		/// create a static map that is 100 pixels wide or smaller, the
 		/// "Powered by Google" logo is automatically reduced in size. (required)
 		/// </summary>
-		public Size Size
+		public MapSize Size
 		{
 			get { return _size; }
 			set
@@ -98,7 +94,7 @@ namespace Google.Maps.StaticMaps
 				this._size = value;
 			}
 		}
-		private Size _size;
+		private MapSize _size;
 
 		/// <summary>
 		/// affects the number of pixels that are returned. scale=2 returns twice as many pixels as scale=1
@@ -204,30 +200,8 @@ namespace Google.Maps.StaticMaps
 		/// <remarks>http://code.google.com/apis/maps/documentation/staticmaps/#Paths</remarks>
 		public ICollection<Location> Visible { get; set; }
 
-
-		/// <summary>
-		/// Specifies whether the application requesting the static map is
-		/// using a sensor to determine the user's location. This parameter
-		/// is required for all static map requests. (required)
-		/// </summary>
-		/// <remarks>http://code.google.com/apis/maps/documentation/staticmaps/#Sensor</remarks>
-		public bool? Sensor { get; set; }
-
-
-
-		private void EnsureSensor(bool throwIfNotSet)
+		public override Uri ToUri()
 		{
-			if(Sensor == null)
-			{
-				if(throwIfNotSet) throw new InvalidOperationException("Sensor isn't set to a valid value.");
-				else return;
-			}
-		}
-
-		public Uri ToUri()
-		{
-			EnsureSensor(true);
-
 			string formatStr = null;
 			switch(this.Format)
 			{
@@ -264,8 +238,7 @@ namespace Google.Maps.StaticMaps
 				.Append("region", this.Region)
 				.Append(GetMarkersStr())
 				.Append(GetPathsStr())
-				.Append("visible", GetVisibleStr())
-				.Append("sensor", (Sensor == true ? "true" : "false"));
+				.Append("visible", GetVisibleStr());
 
 			var url = "staticmap?" + qs.ToString();
 
@@ -288,15 +261,15 @@ namespace Google.Maps.StaticMaps
 			{
 				sb.Length = 0;
 
-				if(currentPath.Color.Equals(Color.Empty) == false)
+				if(!currentPath.Color.IsUndefined)
 				{
-					sb.Append("color:").Append(GetColorEncoded(currentPath.Color, true));
+					sb.Append("color:").Append(currentPath.Color.To32BitColorString());
 				}
 
-				if(currentPath.FillColor.Equals(Color.Empty) == false)
+				if(!currentPath.FillColor.IsUndefined)
 				{
 					if(sb.Length > 0) sb.Append(Constants.PIPE_URL_ENCODED);
-					sb.Append("fillcolor:").Append(GetColorEncoded(currentPath.FillColor, false));
+					sb.Append("fillcolor:").Append(currentPath.FillColor.To32BitColorString());
 				}
 
 				if(currentPath.Encode.GetValueOrDefault() == true)
@@ -329,27 +302,10 @@ namespace Google.Maps.StaticMaps
 
 				}
 
-			skipster:
 				pathParam[pathParamIndex++] = "path=" + sb.ToString();
 			}
 
 			return string.Join("&", pathParam);
-		}
-
-		/// <summary>
-		/// The color encoding for google static maps API puts the alpha last (0xrrggbbaa)
-		/// whereas .NET encodes it alpha first by default (0xaarrggbb).
-		/// </summary>
-		private static string GetColorEncoded(Color color, bool useNamedColorIfPossible)
-		{
-			if(useNamedColorIfPossible && color.IsNamedColor && Constants.IsExpectedNamedColor(color.Name))
-			{
-				return color.Name.ToLowerInvariant();
-			}
-			else
-			{
-				return string.Format("0x{0:X2}{1:X2}{2:X2}{3:X2}", color.R, color.G, color.B, color.A);
-			}
 		}
 
 		private static string GetPathEncoded(Path currentPath)
@@ -405,22 +361,15 @@ namespace Google.Maps.StaticMaps
 				}
 
 				//check for a color specified for the markers and add that style attribute if so
-				if(current.Color.Equals(Color.Empty) == false)
+				if(!current.Color.IsUndefined)
 				{
 					if(sb.Length > 0) sb.Append(Constants.PIPE_URL_ENCODED);
 
-					if(current.Color.IsNamedColor && Constants.IsExpectedNamedColor(current.Color.Name))
-					{
-						sb.AppendFormat("color:{0}", current.Color.Name.ToLowerInvariant());
-					}
-					else
-					{
-						sb.AppendFormat("color:0x{0:X6}", (current.Color.ToArgb() & 0x00FFFFFF));
-					}
+					sb.AppendFormat(current.Color.To24BitColorString());
 				}
 
-				//add a label, but if the MarkerSize is MarkerSizes.Tiny then you can't have a label.
-				if(string.IsNullOrEmpty(current.Label) == false && current.MarkerSize != MarkerSizes.Tiny)
+				// add a label, but if the MarkerSize is MarkerSizes.Tiny or Small then you can't have a label.
+				if (string.IsNullOrEmpty(current.Label) == false && !(current.MarkerSize == MarkerSizes.Tiny || current.MarkerSize == MarkerSizes.Small))
 				{
 					if(sb.Length > 0) sb.Append(Constants.PIPE_URL_ENCODED);
 					sb.AppendFormat("label:{0}", current.Label);
@@ -430,7 +379,7 @@ namespace Google.Maps.StaticMaps
 				if(string.IsNullOrEmpty(current.IconUrl) == false)
 				{
 					if(sb.Length > 0) sb.Append(Constants.PIPE_URL_ENCODED);
-					sb.AppendFormat("icon:{0}", HttpUtility.UrlEncode(current.IconUrl));
+					sb.AppendFormat("icon:{0}", Uri.EscapeDataString(current.IconUrl));
 
 					if(current.Shadow != null)
 					{

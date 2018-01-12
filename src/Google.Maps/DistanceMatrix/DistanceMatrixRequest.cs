@@ -20,13 +20,14 @@ using System.Collections.Generic;
 using System.ComponentModel;
 using Google.Maps;
 using System.Text;
+using System.Linq;
 
 namespace Google.Maps.DistanceMatrix
 {
 	/// <summary>
 	/// Provides a request for the Google Distance Matrix web service.
 	/// </summary>
-	public class DistanceMatrixRequest
+	public class DistanceMatrixRequest : BaseRequest
 	{
 		/// <summary>
 		/// (optional) Specifies what mode of transport to use when calculating directions.
@@ -41,135 +42,127 @@ namespace Google.Maps.DistanceMatrix
 
 		/// <summary>
 		///  (optional) Specifies the unit system to use when expressing distance as text.
-		///   <see cref="http://code.google.com/intl/it-IT/apis/maps/documentation/distancematrix/#unit_systems"/>
+		///   <see href="http://code.google.com/intl/it-IT/apis/maps/documentation/distancematrix/#unit_systems"/>
 		/// </summary>
 		public Units Units { get; set; }
 
 		/// <summary>
 		/// (optional) The language in which to return results.
-		/// <see cref="http://code.google.com/apis/maps/faq.html#languagesupport" />
+		/// <see href="http://code.google.com/apis/maps/faq.html#languagesupport" />
 		/// </summary>
 		public string Language { get; set; }
 
 		/// <summary>
-		///
-		///
-		/// </summary>
-		public bool? Sensor { get; set; }
-
-		/// <summary>
 		///  List of origin waypoints
 		/// </summary>
-		private SortedList<int, Waypoint> waypointsOrigin;
+		private List<Location> _waypointsOrigin;
+		private List<Location> EnsureWaypointsOrigin()
+		{
+			if(_waypointsOrigin == null)
+			{
+				_waypointsOrigin = new List<Location>();
+			}
+			return _waypointsOrigin;
+		}
 
 		/// <summary>
 		/// List of destination waypoints
 		/// </summary>
-		private SortedList<int, Waypoint> waypointsDestination;
+		private List<Location> _waypointsDestination;
+		private List<Location> EnsureWaypointsDestination()
+		{
+			if(_waypointsDestination == null)
+			{
+				_waypointsDestination = new List<Location>();
+			}
+			return _waypointsDestination;
+		}
 
 		/// <summary>
 		/// Accessor method
 		/// </summary>
-		public SortedList<int, Waypoint> WaypointsOrigin
+		public List<Location> WaypointsOrigin
 		{
 			get
 			{
-				if(waypointsOrigin == null)
-				{
-					waypointsOrigin = new SortedList<int, Waypoint>();
-				}
-				return waypointsOrigin;
+				return EnsureWaypointsOrigin();
 			}
 			set
 			{
-				waypointsOrigin = value;
+				_waypointsOrigin = value;
 			}
 		}//end method
 
 		/// <summary>
 		/// Accessor method
 		/// </summary>
-		public SortedList<int, Waypoint> WaypointsDestination
+		public List<Location> WaypointsDestination
 		{
 			get
 			{
-				if(waypointsDestination == null)
-				{
-					waypointsDestination = new SortedList<int, Waypoint>();
-				}
-				return waypointsDestination;
+				return EnsureWaypointsDestination();
 			}
 			set
 			{
-				waypointsDestination = value;
+				_waypointsDestination = value;
 			}
 		}//end method
 
 		/// <summary>
-		///
+		/// Adds a waypoint location to the origin set
 		/// </summary>
 		/// <param name="destination"></param>
-		public void AddOrigin(Waypoint destination)
+		public void AddOrigin(Location destination)
 		{
-			WaypointsOrigin.Add(WaypointsOrigin.Count, destination);
+			WaypointsOrigin.Add(destination);
 		}
 
 		/// <summary>
-		///
+		/// Adds a waypoint location to the destination set
 		/// </summary>
 		/// <param name="destination"></param>
-		public void AddDestination(Waypoint destination)
+		public void AddDestination(Location destination)
 		{
-			WaypointsDestination.Add(WaypointsDestination.Count, destination);
+			WaypointsDestination.Add(destination);
 		}
 
 		/// <summary>
-		///
+		/// Convert waypoint locations collection to a uri string
 		/// </summary>
 		/// <returns></returns>
-		internal string WaypointsToUri(SortedList<int, Waypoint> Waypoints)
+		internal string WaypointsToUri(IEnumerable<Location> waypointsList)
 		{
-			if(Waypoints.Count == 0) return string.Empty;
+			if(waypointsList == null) return string.Empty;
+			if(waypointsList.Count() == 0) return string.Empty;
 
 			StringBuilder sb = new StringBuilder();
 
-			foreach(Waypoint waypoint in Waypoints.Values)
+			foreach(Location waypoint in waypointsList)
 			{
-				sb.AppendFormat("{0}|", waypoint.ToString());
+				if(sb.Length > 0) sb.Append("|");
+				sb.Append(Uri.EscapeDataString(waypoint.ToString()));
 			}
-			sb = sb.Remove(sb.Length - 1, 1);
+
 			return sb.ToString();
-		}//end method
+		}
 
 		/// <summary>
 		/// Create URI for quering
 		/// </summary>
 		/// <returns></returns>
-		internal Uri ToUri()
+		public override Uri ToUri()
 		{
-			this.EnsureSensor(true);
-
 			var qsb = new Internal.QueryStringBuilder()
-				.Append("origins", WaypointsToUri(waypointsOrigin))
-				.Append("destinations", WaypointsToUri(WaypointsDestination))
+				.Append("origins", WaypointsToUri(_waypointsOrigin))
+				.Append("destinations", WaypointsToUri(_waypointsDestination))
 				.Append("mode", Mode.ToString())
 				.Append("language", Language)
 				.Append("units", Units.ToString())
-				.Append("sensor", (Sensor.Value ? "true" : "false"))
 				.Append("avoid", AvoidHelper.MakeAvoidString(Avoid));
 
 			var url = "json?" + qsb.ToString();
 
 			return new Uri(url, UriKind.Relative);
-		}
-
-		private void EnsureSensor(bool throwIfNotSet)
-		{
-			if(Sensor == null)
-			{
-				if(throwIfNotSet) throw new InvalidOperationException("Sensor isn't set to a valid value.");
-				else return;
-			}
 		}
 	}
 

@@ -22,7 +22,6 @@ using System.Globalization;
 namespace Google.Maps
 {
 	[JsonObject(MemberSerialization.OptIn)]
-	[Serializable]
 	public class ViaLatLng : Location, IEquatable<ViaLatLng>
 	{
 		/// <summary>
@@ -122,8 +121,6 @@ namespace Google.Maps
 			return this.ToString("R");
 		}
 
-		#region Parse
-
 		/// <summary>
 		/// Parses a ViaLatLng from a set of latitude/longitude coordinates
 		/// </summary>
@@ -151,7 +148,6 @@ namespace Google.Maps
 				throw new FormatException("Failed to parse ViaLatLng.", ex);
 			}
 		}
-		#endregion
 
 		public override bool Equals(object obj)
 		{
@@ -171,6 +167,14 @@ namespace Google.Maps
 			}
 
 			return false;
+		}
+
+		public override int GetHashCode()
+		{
+			int hash = 13;
+			hash += (hash * 7) + this.Latitude.GetHashCode();
+			hash += (hash * 7) + this.Longitude.GetHashCode();
+			return hash;
 		}
 	}
 }

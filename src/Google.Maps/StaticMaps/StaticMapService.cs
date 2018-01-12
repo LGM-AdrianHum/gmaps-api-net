@@ -15,9 +15,10 @@
  * limitations under the License.
  */
 using System;
-using System.Collections.Generic;
 using System.IO;
-using System.Net;
+using System.Threading.Tasks;
+
+using Google.Maps.Internal;
 
 namespace Google.Maps.StaticMaps
 {
@@ -26,155 +27,77 @@ namespace Google.Maps.StaticMaps
 	/// loading. The Google Static Map service creates your map based on URL parameters sent through a standard HTTP request and returns the
 	/// map as an image you can display on your web page.
 	/// </summary>
-	/// <see cref="https://developers.google.com/maps/documentation/staticmaps/"/>
-	public class StaticMapService
+	/// <see href="https://developers.google.com/maps/documentation/staticmaps/"/>
+	public class StaticMapService : IDisposable
 	{
-		#region Http/Https Uris and Constructors
-
 		public static readonly Uri HttpsUri = new Uri("https://maps.google.com/maps/api");
 		public static readonly Uri HttpUri = new Uri("http://maps.google.com/maps/api");
 
-		public Uri BaseUri { get; set; }
+		Uri baseUri;
+		MapsHttp http;
 
-		public StaticMapService()
-			: this(HttpUri)
+		public StaticMapService(GoogleSigned signingSvc = null, Uri baseUri = null)
 		{
-		}
-		public StaticMapService(Uri baseUri)
-		{
-			this.BaseUri = baseUri;
-		}
-		#endregion
+			this.baseUri = baseUri ?? HttpsUri;
 
-		/// <summary>
-		/// Retrieves a map and returns back the image bytes
-		/// </summary>
-		/// <param name="request"></param>
-		/// <returns>byte array of the image bytes</returns>
-		public byte[] GetImageBytes(StaticMapRequest mapOptions)
-		{
-			MemoryStream outputStream = new MemoryStream();
-
-			GetMapToStream(mapOptions, outputStream);
-
-			return outputStream.ToArray();
+			this.http = new MapsHttp(signingSvc ?? GoogleSigned.SigningInstance);
 		}
 
-		/// <summary>
-		/// Retrieves the map with the given request and writes the image bytes to the given target stream.
-		/// </summary>
-		/// <param name="request"></param>
-		/// <param name="targetStream"></param>
-		/// <returns>number of bytes written to the target stream</returns>
-		public int GetMapToStream(StaticMapRequest mapOptions, System.IO.Stream outputStream)
+		public byte[] GetImage(StaticMapRequest request)
 		{
-			Uri requestUri = new Uri(BaseUri, mapOptions.ToUri());
-			GoogleSigned signingInstance = GoogleSigned.SigningInstance;
-			if(signingInstance != null)
+			var stream = GetStream(request);
+
+			return StreamToArray(stream);
+		}
+
+		public async Task<byte[]> GetImageAsync(StaticMapRequest request)
+		{
+			var stream = await GetStreamAsync(request);
+
+			return StreamToArray(stream);
+		}
+
+		public Stream GetStream(StaticMapRequest request)
+		{
+			var uri = new Uri(baseUri, request.ToUri());
+
+			return http.GetStream(uri);
+		}
+
+		public Task<Stream> GetStreamAsync(StaticMapRequest request)
+		{
+			var uri = new Uri(baseUri, request.ToUri());
+
+			return http.GetStreamAsync(uri);
+		}
+
+		Byte[] StreamToArray(Stream inputStream)
+		{
+			var outputStream = new MemoryStream();
+
+			int bytesRead = 0;
+			const int BYTE_BUFFER_LENGTH = 4096;
+			byte[] buffer = new byte[BYTE_BUFFER_LENGTH];
+
+			do
 			{
-				requestUri = new Uri(signingInstance.GetSignedUri(requestUri));
+				bytesRead = inputStream.Read(buffer, 0, BYTE_BUFFER_LENGTH);
+				outputStream.Write(buffer, 0, bytesRead);
 			}
+			while (bytesRead > 0);
 
-			int totalBytes = 0;
+			var result = outputStream.ToArray();
+			outputStream.Dispose();
+			return result;
+		}
 
-			WebRequest request = WebRequest.Create(requestUri);
-
-			using(WebResponse response = request.GetResponse())
+		public void Dispose()
+		{
+			if (http != null)
 			{
-				Stream inputStream = response.GetResponseStream();
-
-				int bytesRead = 0;
-				const int BYTE_BUFFER_LENGTH = 4096;
-				byte[] buffer = new byte[BYTE_BUFFER_LENGTH];
-
-				do
-				{
-					bytesRead = inputStream.Read(buffer, 0, BYTE_BUFFER_LENGTH);
-					outputStream.Write(buffer, 0, bytesRead);
-					totalBytes += bytesRead;
-				}
-				while(bytesRead > 0);
+				http.Dispose();
+				http = null;
 			}
-
-			return totalBytes;
 		}
-
-		/// <summary>
-		/// Retrieves a static map image at a default size of 512x512 with the given parameters.
-		/// </summary>
-		/// <param name="center"></param>
-		/// <param name="zoom"></param>
-		/// <param name="sensor"></param>
-		/// <returns></returns>
-		public byte[] GetMap(Location center, int zoom, bool sensor)
-		{
-			StaticMapRequest request = new StaticMapRequest()
-			{
-				Center = center,
-				Zoom = zoom,
-				Sensor = sensor
-			};
-
-			return GetImageBytes(request);
-		}
-
-		/// <summary>
-		/// Retrieves a static map image at a default size of 512x512 and using the specified image format.
-		/// </summary>
-		/// <param name="center">A location to center the map on</param>
-		/// <param name="zoom">Zoom level to use</param>
-		/// <param name="sensor">Pass true if the location was provided via a sensor</param>
-		/// <param name="imageFormat">The format of the image</param>
-		/// <returns></returns>
-		public byte[] GetMap(Location center, int zoom, GMapsImageFormats imageFormat, bool sensor)
-		{
-			StaticMapRequest request = new StaticMapRequest()
-			{
-				Format = imageFormat,
-				Center = center,
-				Zoom = zoom,
-				Sensor = sensor
-			};
-
-			return GetImageBytes(request);
-		}
-
-		/// <summary>
-		/// Retrieves a static map image at a default size of 512x512 and using the specified image format.
-		/// </summary>
-		/// <param name="center">A location to center the map on</param>
-		/// <param name="zoom">Zoom level to use</param>
-		/// <param name="sensor">Pass true if the location was provided via a sensor</param>
-		/// <param name="imageFormat">The format of the image</param>
-		/// <returns></returns>
-		public byte[] GetMap(Location center, int zoom, System.Drawing.Size size, GMapsImageFormats imageFormat, bool sensor)
-		{
-			StaticMapRequest request = new StaticMapRequest()
-			{
-				Format = imageFormat,
-				Size = size,
-				Center = center,
-				Zoom = zoom,
-				Sensor = sensor
-			};
-
-			return GetImageBytes(request);
-		}
-
-
-		public byte[] GetMapWithCenterMarked(Location center, int zoom, bool sensor)
-		{
-			StaticMapRequest request = new StaticMapRequest()
-			{
-				Center = center,
-				Zoom = zoom,
-				Sensor = sensor
-			};
-			request.Markers.Add(request.Center);
-
-			return GetImageBytes(request);
-		}
-
-
 	}
 }

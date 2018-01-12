@@ -15,9 +15,9 @@
  * limitations under the License.
  */
 using System;
-using System.Collections.Generic;
-using System.Text;
-using System.Globalization;
+using System.Threading.Tasks;
+
+using Google.Maps.Internal;
 
 namespace Google.Maps.Elevation
 {
@@ -26,25 +26,21 @@ namespace Google.Maps.Elevation
 	/// In those cases where Google does not possess exact elevation measurements at the precise location you request, the service will interpolate and return an averaged value
 	/// using the four nearest locations.
 	/// </summary>
-	/// <see cref="http://code.google.com/apis/maps/documentation/elevation/"/>
-	public class ElevationService
+	/// <see href="http://code.google.com/apis/maps/documentation/elevation/"/>
+	public class ElevationService : IDisposable
 	{
-		#region Http/Https Uris and Constructors
-
 		public static readonly Uri HttpsUri = new Uri("https://maps.google.com/maps/api/elevation/");
 		public static readonly Uri HttpUri = new Uri("http://maps.google.com/maps/api/elevation/");
 
-		public Uri BaseUri { get; set; }
+		Uri baseUri;
+		MapsHttp http;
 
-		public ElevationService()
-			: this(HttpUri)
+		public ElevationService(GoogleSigned signingSvc = null, Uri baseUri = null)
 		{
+			this.baseUri = baseUri ?? HttpsUri;
+
+			this.http = new MapsHttp(signingSvc ?? GoogleSigned.SigningInstance);
 		}
-		public ElevationService(Uri baseUri)
-		{
-			this.BaseUri = baseUri;
-		}
-		#endregion
 
 		/// <summary>
 		/// Sends the specified request to the Google Maps Elevation web
@@ -55,8 +51,25 @@ namespace Google.Maps.Elevation
 		/// <returns></returns>
 		public ElevationResponse GetResponse(ElevationRequest request)
 		{
-			var url = new Uri(this.BaseUri, request.ToUri());
-			return Internal.Http.Get(url).As<ElevationResponse>();
+			var url = new Uri(baseUri, request.ToUri());
+
+			return http.Get<ElevationResponse>(url);
+		}
+
+		public async Task<ElevationResponse> GetResponseAsync(ElevationRequest request)
+		{
+			var url = new Uri(baseUri, request.ToUri());
+
+			return await http.GetAsync<ElevationResponse>(url);
+		}
+
+		public void Dispose()
+		{
+			if (http != null)
+			{
+				http.Dispose();
+				http = null;
+			}
 		}
 	}
 }

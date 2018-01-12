@@ -15,41 +15,48 @@
  * limitations under the License.
  */
 using System;
-using System.Collections.Generic;
-using System.Text;
-using System.Globalization;
+using System.Threading.Tasks;
+
+using Google.Maps.Internal;
 
 namespace Google.Maps.Direction
 {
-	/// <summary>
-	///
-	///
-	///
-	/// </summary>
-	/// <see cref=""/>
-	public class DirectionService
+	public class DirectionService : IDisposable
 	{
-		#region Http/Https Uris and Constructors
-
 		public static readonly Uri HttpsUri = new Uri("https://maps.google.com/maps/api/directions/");
 		public static readonly Uri HttpUri = new Uri("http://maps.google.com/maps/api/directions/");
 
-		public Uri BaseUri { get; set; }
+		Uri baseUri;
+		MapsHttp http;
 
-		public DirectionService()
-			: this(HttpUri)
+		public DirectionService(GoogleSigned signingSvc = null, Uri baseUri = null)
 		{
+			this.baseUri = baseUri ?? HttpsUri;
+
+			this.http = new MapsHttp(signingSvc ?? GoogleSigned.SigningInstance);
 		}
-		public DirectionService(Uri baseUri)
-		{
-			this.BaseUri = baseUri;
-		}
-		#endregion
 
 		public DirectionResponse GetResponse(DirectionRequest request)
 		{
-			var url = new Uri(this.BaseUri, request.ToUri());
-			return Internal.Http.Get(url).As<DirectionResponse>();
+			var url = new Uri(baseUri, request.ToUri());
+
+			return http.Get<DirectionResponse>(url);
+		}
+
+		public async Task<DirectionResponse> GetResponseAsync(DirectionRequest request)
+		{
+			var url = new Uri(baseUri, request.ToUri());
+
+			return await http.GetAsync<DirectionResponse>(url);
+		}
+
+		public void Dispose()
+		{
+			if (http != null)
+			{
+				http.Dispose();
+				http = null;
+			}
 		}
 	}
 }
